@@ -15,11 +15,13 @@ print("Client started on", ml.HOST)
 clientSocket.connect((ml.HOST, ml.PORT))
 print("Connected to server", ml.HOST, ":", ml.PORT)
 
+username = input("Username: ")
+
 while True:
     # Request a message to user
     msg = input("Enter a message to send to the server: ")
     # Send a message to the server
-    ml.strSend(clientSocket, msg)
+    ml.strSend(clientSocket, username + "~" + msg)
 
     if msg=="quit":
         break

@@ -17,12 +17,16 @@ class Service(threading.Thread):
     def run(self):
         while True:
             # receiving a message from client
-            msg = ml.strReceive(self.s)
-            print("Received message: ", msg)
+            msg = ml.strReceive(self.s).split("~")
+            # msg[0] - Username
+            # msg[1] - Messaggio
+
+            print(msg[0] + ": " + msg[1])
             # Close the connection
-            if msg=='quit':
-                break
-        self.s.close()
+            if msg[1] == 'quit':
+                #self.interrupt()
+                self.s.close()
+                break;
 
 
 # Create a socket object (server)

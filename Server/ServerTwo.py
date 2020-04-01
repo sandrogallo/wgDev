@@ -7,6 +7,7 @@
 import socket
 import threading
 import mylib as ml
+from datetime import datetime
 
 class Service(threading.Thread):
     def __init__(self, s, a):               # s: clientSocket - a: address
@@ -19,14 +20,17 @@ class Service(threading.Thread):
             # receiving a message from client
             msg = ml.strReceive(self.s).split("~")
             # msg[0] - Username
-            # msg[1] - Messaggio
+            # msg[1] - Contenuto massaggio
 
-            print(msg[0] + ": " + msg[1])
-            # Close the connection
+            now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
             if msg[1] == 'quit':
-                #self.interrupt()
+                print("["+now+"]", msg[0], "ha abbandonato la chat")
+                # Close the connection
                 self.s.close()
                 break;
+
+            print("["+now+"]", msg[0] + ": " + msg[1])
 
 
 # Create a socket object (server)

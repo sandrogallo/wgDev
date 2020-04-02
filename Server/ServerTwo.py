@@ -24,13 +24,15 @@ class Service(threading.Thread):
 
             now = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-            if msg[1] == 'quit':
+            if msg[1] == 'initjoined':
+                print("["+now+"]", msg[0], "è entrato nella chat")
+            elif msg[1] == 'quit':
                 print("["+now+"]", msg[0], "ha abbandonato la chat")
                 # Close the connection
                 self.s.close()
-                break;
-
-            print("["+now+"]", msg[0] + ": " + msg[1])
+                break
+            else:
+                print("["+now+"]", msg[0] + ": " + msg[1])
 
 
 # Create a socket object (server)

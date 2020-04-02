@@ -51,15 +51,16 @@ print("Server Two avviato su", ml.HOST, ":", ml.PORT)
 serverSocket.listen(5)
 while True:
     # Attesa di una connessione
-    print("\nwaiting a client connection ...")
+    print("\nAttesa di una connessione...")
     (clientSocket, addr) = serverSocket.accept()
 
-    # Connessione ricevuta, estrae l'username
-    print('Got connection from', addr)
     username = ml.strReceive(clientSocket)
+    # Connessione ricevuta, estrae l'username
+    print("Connessione di", username, "con parametri", addr)
 
     # Creazione thred, avvio e ritorno ad ascoltare
     svc = Service(clientSocket, addr, username)
     svc.start()
+    print("Thread inizializzato con successo")
 
 print("Server terminated.")

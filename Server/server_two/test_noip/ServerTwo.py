@@ -9,9 +9,26 @@ import threading
 import mylib as ml
 from datetime import datetime
 
-def client_closed(username):
+# Vettore che memorizza tutte le connessioni
+connessioni = []
+
+def client_closed(my_socket, username):
     now = datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
-    print("["+now+"]", username, "ha chiuso il client")
+    out = "["+now+"] " + username + " ha chiuso il client"
+    print(out)
+    send_to_all(my_socket, username, out)
+    connessioni.remove(my_socket)
+
+#
+# Inoltra a tutti gli altri client il messaggio
+#
+def send_to_all(my_socket, username, msg):
+    for socket in connessioni:
+        try:
+            if(socket != my_socket):
+                ml.strSend(socket, username + "> " + msg)
+        except:
+            print(socket, "non ha ricevuto")
 
 class Service(threading.Thread):
     def __init__(self, s, a, username): # s: clientSocket - a: address
@@ -29,15 +46,19 @@ class Service(threading.Thread):
 
                 # Comando di uscita, il thread viene terminato
                 if msg == 'quit':
-                    print("["+now+"]", self.username, "ha abbandonato la chat")
+                    out = "["+now+"] " + self.username + " ha abbandonato la chat"
+                    print(out)
+                    send_to_all(self.s, self.username, out)
                     self.s.close()
+                    connessioni.remove(self.s)
                     break;
 
                 print("["+now+"]", self.username + ": " + msg)
+                send_to_all(self.s, self.username, msg)
         except ConnectionResetError: # Nel caso il client venga chiuso dalla X
-            client_closed(self.username)
+            client_closed(self.s, self.username)
         except ValueError: # Nel caso il client venga chiuso dalla X
-            client_closed(self.username)
+            client_closed(self.s, self.username)
 
 
 #
@@ -57,6 +78,7 @@ while True:
     username = ml.strReceive(clientSocket)
     # Connessione ricevuta, estrae l'username
     print("Connessione di", username, "con parametri", addr)
+    connessioni.append(clientSocket)
 
     # Creazione thred, avvio e ritorno ad ascoltare
     svc = Service(clientSocket, addr, username)

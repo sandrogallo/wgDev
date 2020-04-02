@@ -5,9 +5,27 @@
 #
 
 import socket
+import threading
 import mylib as ml
 
 HOST = "pinco1710.ddns.net"
+
+#
+# Thread per ascoltare i messaggi in entrata
+#
+class Listener(threading.Thread):
+    def __init__(self, s): # s: clientSocket - a: address
+       threading.Thread.__init__(self)
+       self.s = s
+
+    def run(self):
+        try:
+            while True:
+                msg = ml.strReceive(self.s)
+                print(msg)
+        except:
+            print("Thread terminato")
+
 
 # Creazione socket
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -25,9 +43,15 @@ print("Connesso al server", HOST, ":", ml.PORT)
 username = input("Username: ")
 ml.strSend(clientSocket, username) # Il primo messaggio che il server si aspetta è l'username
 
+#
+# Ascolta i messaggi in entrata
+#
+listener = Listener(clientSocket)
+listener.start()
+
 while True:
     # Input del messaggio dell'utente
-    msg = input("Inserisci messaggio> ")
+    msg = input("")
 
     if(len(msg) != 0): # Verifica se il messaggio è vuoto
         # Invio del messaggio

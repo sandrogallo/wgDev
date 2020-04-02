@@ -34,9 +34,9 @@ class Service(threading.Thread):
                     break;
 
                 print("["+now+"]", self.username + ": " + msg)
-        except ConnectionResetError:
+        except ConnectionResetError: # Nel caso il client venga chiuso dalla X
             client_closed(self.username)
-        except ValueError:
+        except ValueError: # Nel caso il client venga chiuso dalla X
             client_closed(self.username)
 
 

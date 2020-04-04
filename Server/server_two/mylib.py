@@ -9,7 +9,7 @@ import socket
 
 # Set server addr:port
 HOST = socket.gethostname()
-PORT = 10101
+PORT = 25566
 
 def strSend(sock, str):
     strlen = '{:08d}'.format(len(str))

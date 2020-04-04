@@ -1,41 +1,67 @@
 #
-# testClient for Server One
-# Team: Sandro Gallo
-# last-updated: 26/03/2020 by Sandro
+# ClientTwo for Server Two
+# Team: Server Python
+# last-updated: 02/04/2020 by Team Server
 #
 
 import socket
+import threading
 import mylib as ml
 
-# Create a socket object (client)
+#
+# Thread per ascoltare i messaggi in entrata
+#
+class Listener(threading.Thread):
+    def __init__(self, s): # s: clientSocket - a: address
+       threading.Thread.__init__(self)
+       self.s = s
+       self.running = True;
+
+    def run(self):
+        while self.running:
+            msg = ml.strReceive(self.s)
+            print(msg)
+
+    def stop(self):
+        self.running = False
+
+
+# Creazione socket
+clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+print("Client connesso a", ml.HOST)
+
+#
+# Connessione a HOST e PORT
+#
+clientSocket.connect((ml.HOST, ml.PORT))
+print("Connesso al server", ml.HOST, ":", ml.PORT)
+
+#
+# Inserimento username
+#
+username = input("Username: ")
+ml.strSend(clientSocket, username) # Il primo messaggio che il server si aspetta è l'username
+
+#
+# Avvio thread che ascolta i messaggi in entrata
+#
+listener = Listener(clientSocket)
+listener.start()
+
 while True:
-    username = input("Inserisci username: ")
-    if(username == "quit"):
-        break
+    # Input del messaggio dell'utente
+    msg = input("")
 
-    print("\nClient started on", ml.HOST)
-    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if(len(msg) != 0): # Verifica se il messaggio è vuoto
+        # Invio del messaggio
+        ml.strSend(clientSocket, msg)
 
-    # Try to connect to the server
-    print("\nSearching for servers...")
-    clientSocket.connect((ml.HOST, ml.PORT))
-    print("Connected to server", ml.HOST, ":", ml.PORT, "\n")
-
-    ml.strSend(clientSocket, username + "~" + "initjoined")
-
-    while True:
-        # Request a message to user
-        msg = input("Enter a message to send to the server: ")
-        # Send a message to the server
-        ml.strSend(clientSocket, username + "~" + msg)
-
-        if msg == "quit":
-            print("\nDisconnessione dalla chat...")
+        # Arresto del client
+        if msg=="quit":
+            listener.stop()
+            listener.join()
             break
 
-    # Close the socket when done
-    clientSocket.close()
-    print("Connection closed.\n")
-    # input("press RETURN to terminate")
-
-print("Program is closing.")
+# Chiude il socket
+clientSocket.close()
+print("Connessione terminata.")

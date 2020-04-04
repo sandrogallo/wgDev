@@ -12,6 +12,9 @@ from datetime import datetime
 # Vettore che memorizza tutte le connessioni
 connessioni = []
 
+#
+# Messaggio di chiusura forzata del client
+#
 def client_closed(my_socket, username):
     now = datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
     out = "["+now+"] " + username + " ha chiuso il client"
@@ -48,6 +51,7 @@ class Service(threading.Thread):
                 if msg == 'quit':
                     out = "["+now+"] " + self.username + " ha abbandonato la chat"
                     print(out)
+                    ml.strSend(self.s, out) # Messaggio di termine
                     send_to_all(self.s, self.username, out)
                     self.s.close()
                     connessioni.remove(self.s)
@@ -72,12 +76,12 @@ print("Server Two avviato su", ml.HOST, ":", ml.PORT)
 serverSocket.listen(5)
 while True:
     # Attesa di una connessione
-    print("\nAttesa di una connessione...")
+    print("\nAttesa di una connessione...\n")
     (clientSocket, addr) = serverSocket.accept()
 
     username = ml.strReceive(clientSocket)
     # Connessione ricevuta, estrae l'username
-    print("Connessione di", username, "con parametri", addr)
+    print("\nConnessione di", username, "con parametri", addr)
     connessioni.append(clientSocket)
 
     # Creazione thred, avvio e ritorno ad ascoltare

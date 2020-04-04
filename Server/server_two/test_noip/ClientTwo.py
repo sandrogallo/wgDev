@@ -9,7 +9,6 @@ import threading
 import mylib as ml
 
 HOST = "pinco1710.ddns.net"
-HOST = ml.HOST
 
 #
 # Thread per ascoltare i messaggi in entrata

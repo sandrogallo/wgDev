@@ -9,6 +9,7 @@ import threading
 import mylib as ml
 
 HOST = "pinco1710.ddns.net"
+HOST = ml.HOST
 
 #
 # Thread per ascoltare i messaggi in entrata
@@ -17,14 +18,15 @@ class Listener(threading.Thread):
     def __init__(self, s): # s: clientSocket - a: address
        threading.Thread.__init__(self)
        self.s = s
+       self.running = True;
 
     def run(self):
-        try:
-            while True:
-                msg = ml.strReceive(self.s)
-                print(msg)
-        except:
-            print("Thread terminato")
+        while self.running:
+            msg = ml.strReceive(self.s)
+            print(msg)
+
+    def stop(self):
+        self.running = False
 
 
 # Creazione socket
@@ -44,7 +46,7 @@ username = input("Username: ")
 ml.strSend(clientSocket, username) # Il primo messaggio che il server si aspetta è l'username
 
 #
-# Ascolta i messaggi in entrata
+# Avvio thread che ascolta i messaggi in entrata
 #
 listener = Listener(clientSocket)
 listener.start()
@@ -59,6 +61,8 @@ while True:
 
         # Arresto del client
         if msg=="quit":
+            listener.stop()
+            listener.join()
             break
 
 # Chiude il socket

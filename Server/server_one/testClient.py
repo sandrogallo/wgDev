@@ -1,7 +1,7 @@
 #
 # testClient for ServerOne
 # Team: Sandro Gallo
-# last-updated: 26/03/2020 by Sandro
+# last-updated: 10/04/2020 by Sandro
 #
 
 import socket
@@ -9,7 +9,6 @@ import mylib as ml
 
 # Create a socket object (client)
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print("Client started on", ml.HOST)
 
 # Request a message to user
 msg = input("Enter a message to send to the server: ")
@@ -20,6 +19,7 @@ print("Connected to server", ml.HOST, ":", ml.PORT)
 
 # Send a message to the server
 ml.strSend(clientSocket, msg)
+print("Message sent")
 
 # Close the socket when done
 clientSocket.close()

@@ -12,6 +12,9 @@ from datetime import datetime
 # Vettore che memorizza tutte le connessioni
 connessioni = []
 
+# Definizione del lock
+threadLock = threading.Lock()
+
 #
 # Messaggio di chiusura forzata del client
 #
@@ -54,7 +57,9 @@ class Service(threading.Thread):
                     ml.strSend(self.s, out) # Messaggio di termine
                     send_to_all(self.s, self.username, out)
                     self.s.close()
+                    threadLock.acquire() # Blocca l'accesso alle variabili per gli altri thread
                     connessioni.remove(self.s)
+                    threadLock.release() # Rilascia il blocco
                     break;
 
                 print("["+now+"]", self.username + ": " + msg)

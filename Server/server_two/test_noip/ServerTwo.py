@@ -1,7 +1,7 @@
 #
 # Server Two
 # Team: Server Python
-# last-updated: 15/04/2020 by Team Server
+# last-updated: 17/04/2020 by Team Server
 #
 
 import socket
@@ -80,18 +80,21 @@ print("Server Two avviato su", ml.HOST, ":", ml.PORT)
 # Il server ascolta
 serverSocket.listen(5)
 while True:
-    # Attesa di una connessione
-    print("\nAttesa di una connessione...\n")
-    (clientSocket, addr) = serverSocket.accept()
+    try:
+        # Attesa di una connessione
+        print("\nAttesa di una connessione...\n")
+        (clientSocket, addr) = serverSocket.accept()
 
-    username = ml.strReceive(clientSocket)
-    # Connessione ricevuta, estrae l'username
-    print("\nConnessione di", username, "con parametri", addr)
-    connessioni.append(clientSocket)
+        username = ml.strReceive(clientSocket)
+        # Connessione ricevuta, estrae l'username
+        print("\nConnessione di", username, "con parametri", addr)
+        connessioni.append(clientSocket)
 
-    # Creazione thred, avvio e ritorno ad ascoltare
-    svc = Service(clientSocket, addr, username)
-    svc.start()
-    print("Thread inizializzato con successo")
+        # Creazione thred, avvio e ritorno ad ascoltare
+        svc = Service(clientSocket, addr, username)
+        svc.start()
+        print("Thread inizializzato con successo")
+    except ConnectionResetError:
+        print("Client chiuso forzatamente dall'utente")
 
 print("Server terminated.")

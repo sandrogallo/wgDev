@@ -232,7 +232,6 @@ def start_stop_server():
         th_server.stop()
         th_server = None
         update_users()
-        server_running = not server_running
     else: # ON
         pygame.mixer.music.load("sound/on.wav")
         pygame.mixer.music.play()
@@ -241,7 +240,7 @@ def start_stop_server():
         console_print("Avvio del server")
         th_server = Server()
         th_server.start()
-        server_running = not server_running
+    server_running = not server_running
 
 def cmdHandler(event=None):
     global running_thread
@@ -286,15 +285,22 @@ userList.grid(column=1, row=0)
 userList.config(state="disabled")
 
 
-# Grafico CPU ----------------------------------------------------------------------------------
+# Grafici ----------------------------------------------------------------------------------
 x = [i for i in range(0, 100)]
-y = [0 for i in range(0, 100)]
+y_cpu = [0 for i in range(0, 100)]
+y_ram = [0 for i in range(0, 100)]
 
 def cpu_graph_anim(i):
-    y.pop(0)
-    y.append(psutil_this.cpu_percent() / psutil.cpu_count())
-    line.set_ydata(y)  # Aggiorna grafico
-    return line,
+    y_cpu.pop(0)
+    y_cpu.append(psutil_this.cpu_percent() / psutil.cpu_count())
+    line_cpu.set_ydata(y_cpu)  # Aggiorna grafico
+    return line_cpu,
+
+def ram_graph_anim(i):
+    y_ram.pop(0)
+    y_ram.append(psutil_this.memory_percent())
+    line_ram.set_ydata(y_ram)  # Aggiorna grafico
+    return line_ram,
 
 fig = plt.Figure()
 fig.set_size_inches(8.06, 2)
@@ -302,12 +308,15 @@ fig.set_size_inches(8.06, 2)
 canvas = FigureCanvasTkAgg(fig, master=win)
 canvas.get_tk_widget().grid(column=0,row=2)
 ax = fig.add_subplot(111)
-ax.axis(ymin=0.0, ymax=100.0)
+ax.axis(ymin=0.0, ymax=100.0, xmin=0.0, xmax=100.0)
 ax.set_xticklabels([])
-ax.set_ylabel('% CPU')
-line, = ax.plot(x, y)
+ax.set_ylabel('%', rotation=180)
+line_cpu, = ax.plot(x, y_cpu, label="CPU")
+line_ram, = ax.plot(x, y_ram, label="RAM")
+ax.legend()
 anim = animation.FuncAnimation(fig, cpu_graph_anim, None, interval=1000, blit=False, cache_frame_data=False)
-# Fine grafico CPU -----------------------------------------------------------------------------
+anim2 = animation.FuncAnimation(fig, ram_graph_anim, None, interval=1000, blit=False, cache_frame_data=False)
+# Fine grafici -----------------------------------------------------------------------------
 
 
 # Visualizza

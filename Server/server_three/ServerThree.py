@@ -4,14 +4,23 @@
 # last-updated: 22/04/2020 by Team Server
 #
 
+# pip install psutil matplotlib pygame
+
 import socket
 import threading
 import mylib as ml
 from datetime import datetime
 from tkinter import *
+import os
+import psutil
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import pygame
 
 #
-# Stampa su console della finestra tkinter
+# Stampa su console della finestra tkinter pygame
 #
 def console_print(*text):
     console.config(state="normal")
@@ -21,6 +30,18 @@ def console_print(*text):
     console.insert("end", out_str + "\n")
     console.config(state="disabled")
     console.see("end")
+
+#
+# Stampa sulla lista utenti della finestra tkinter pygame
+#
+def userlist_print(*text):
+    userList.config(state="normal")
+    out_str = ""
+    for t in text:
+        out_str = out_str + " " + str(t)
+    userList.insert("end", out_str + "\n")
+    userList.config(state="disabled")
+    userList.see("end")
 
 #
 # Messaggio di chiusura forzata del client
@@ -69,6 +90,19 @@ def remove_connection(socket):
             del running_thread[i]
             break
     threadLock.release() # Rilascia il blocco
+    update_users()
+
+#
+# Aggiornamento lista utenti
+#
+def update_users():
+    userList.config(state="normal")
+    userList.delete('1.0', END)
+    for i, th in enumerate(running_thread):
+        userlist_print(th.username, "("+ str(i) +")")
+        userlist_print(th.address)
+        userlist_print()
+    userList.config(state="disabled")
 
 #
 # Gestisce la connessione di un utente
@@ -104,8 +138,8 @@ class UserHandler(threading.Thread):
             remove_connection(self.socket)
         except Exception as e:
             remove_connection(self.socket)
-            print(self.username, "rip")
-            console_print(str(self.username), "rip")
+            print(self.username, "è crashato")
+            console_print(self.username, "è crashato")
 
     def stop(self):
         self.socket.close()
@@ -136,26 +170,30 @@ class Server(threading.Thread):
                 username = ml.strReceive(clientSocket)
 
                 print("\nConnessione di", username, "con parametri", addr)
-                console_print("\nConnessione di", username, "con parametri", addr)
+                # console_print("\nConnessione di", username, "con parametri", addr)
 
                 # Creazione thred, avvio e ritorno ad ascoltare
                 svc = UserHandler(clientSocket, addr, username)
                 svc.start()
                 running_thread.append(svc)
-                print("Thread inizializzato con successo")
-                console_print("Thread inizializzato con successo")
+
+                update_users()
+
+                # print("Thread inizializzato con successo")
+                # console_print("Thread inizializzato con successo")
             except ConnectionResetError:
                 print("Client chiuso forzatamente dall'utente")
                 console_print("Client chiuso forzatamente dall'utente")
-            except Exception:
-                print("Rip")
-                console_print("Rip")
+            except Exception as e:
+                print("Arresto del server in corso")
+                console_print("Arresto del server in corso")
 
     def stop(self):
         global running_thread
         threadLock.acquire()
         for i in running_thread:
             i.stop()
+        running_thread = []
         threadLock.release()
         self.serverSocket.close()
         self.serverSocket = None
@@ -168,35 +206,108 @@ running_thread = []
 # Definizione del lock
 threadLock = threading.Lock()
 
+# Inizializzazione parametri finestra
+win = Tk()
+win.geometry("1055x600")
+win.title("Server Three")
+win.resizable(width=False, height=False)
+psutil_this = psutil.Process(os.getpid())
+psutil_this.cpu_percent(interval=0)
+
 server_running = False
 th_server = None
+pygame.init()
+
+btnImg_on = PhotoImage(file="img/bottone_on.png")
+btnImg_off = PhotoImage(file="img/bottone_off.png")
 
 def start_stop_server():
     global server_running
     global th_server
-    if server_running:
+    global btnOnOff, btnImg_off, btnImg_on
+    if server_running: # OFF
+        pygame.mixer.music.load("sound/off.wav")
+        pygame.mixer.music.play()
+        btnOnOff = Button(win, image=btnImg_off, command=start_stop_server, bd="0").place(x=900, y=460)
         th_server.stop()
+        th_server = None
+        update_users()
         server_running = not server_running
-        print("Server terminato")
-        console_print("Server terminato")
-    else:
+    else: # ON
+        pygame.mixer.music.load("sound/on.wav")
+        pygame.mixer.music.play()
+        btnOnOff = Button(win, image=btnImg_on, command=start_stop_server, bd="0").place(x=900, y=460)
         print("Avvio del server")
         console_print("Avvio del server")
         th_server = Server()
         th_server.start()
         server_running = not server_running
 
-# Inizializzazione parametri finestra
-win = Tk()
-win.geometry("1000x600")
-win.title("Server Three")
+def cmdHandler(event=None):
+    global running_thread
+    if server_running:
+        cmd = cmdLine.get()
+        if len(cmd) != 0:
+            if cmd[0] == "/":
+                cmd = cmd.lower().split(" ")
+                if cmd[0] == "/kick":
+                    if cmd[1] == "all":
+                        threadLock.acquire()
+                        for th in running_thread:
+                            th.stop()
+                        running_thread = []
+                        threadLock.release()
+                    else:
+                        try:
+                            th = running_thread[int(cmd[1])]
+                            remove_connection(th.socket)
+                        except Exception:
+                            pass
+            else:
+                console_print(cmd)
+                forward(None, "[SERVER]", cmd)
+    else:
+        console_print("Server spento!")
+    cmdLine.delete("0", "end")
 
-console = Text(win, width=100, height=25, borderwidth=2, relief="groove")
+
+console = Text(win, width=100, height=23, borderwidth=2, relief="groove")
 console.grid(column=0, row=0)
 console.config(state="disabled")
 
-btnimg=PhotoImage(file="img/bottone.png")
-btnOnOff = Button(win, image=btnimg, command=start_stop_server, bd="0").place(x=900, y=500)
+cmdLine = Entry(win, width=133, borderwidth=3, relief="groove")
+cmdLine.bind('<Return>', cmdHandler)
+cmdLine.grid(column=0, row=1)
+
+btnOnOff = Button(win, image=btnImg_off, command=start_stop_server, bd="0").place(x=900, y=460)
+
+userList = Text(win, width=30, height=23, borderwidth=2, relief="groove")
+userList.grid(column=1, row=0)
+userList.config(state="disabled")
+
+
+# Grafico CPU ----------------------------------------------------------------------------------
+x = [i for i in range(0, 100)]
+y = [0 for i in range(0, 100)]
+
+def cpu_graph_anim(i):
+    y.pop(0)
+    y.append(psutil_this.cpu_percent() / psutil.cpu_count())
+    line.set_ydata(y)  # Aggiorna grafico
+    return line,
+
+fig = plt.Figure()
+fig.set_size_inches(8.06, 2)
+
+canvas = FigureCanvasTkAgg(fig, master=win)
+canvas.get_tk_widget().grid(column=0,row=2)
+ax = fig.add_subplot(111)
+ax.axis(ymin=0.0, ymax=100.0)
+ax.set_xticklabels([])
+ax.set_ylabel('% CPU')
+line, = ax.plot(x, y)
+anim = animation.FuncAnimation(fig, cpu_graph_anim, None, interval=1000, blit=False, cache_frame_data=False)
+# Fine grafico CPU -----------------------------------------------------------------------------
 
 
 # Visualizza

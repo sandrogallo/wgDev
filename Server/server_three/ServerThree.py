@@ -10,6 +10,9 @@ import mylib as ml
 from datetime import datetime
 from tkinter import *
 
+#
+# Stampa su console della finestra tkinter
+#
 def console_print(*text):
     console.config(state="normal")
     out_str = ""
@@ -28,6 +31,9 @@ def client_closed(my_socket, username):
     console_print(out)
     forward(my_socket, username, out)
 
+#
+# Messaggio di chiusura con comando quit
+#
 def client_quitted(my_socket, username):
     out = "["+timespamp()+"] " + username + " ha abbandonato la chat"
     print(out)
@@ -35,6 +41,9 @@ def client_quitted(my_socket, username):
     ml.strSend(my_socket, out) # Messaggio di termine
     forward(my_socket, username, out)
 
+#
+# Restituisce stringa formattata con ora corrente
+#
 def timespamp():
     return datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
 
@@ -49,6 +58,9 @@ def forward(my_socket, username, msg):
         except:
             console_print(th.socket, "non ha ricevuto")
 
+#
+# Ferma e cancella il thread della connessione passata come parametro
+#
 def remove_connection(socket):
     threadLock.acquire() # Blocca l'accesso alle variabili per gli altri thread
     for i, th in enumerate(running_thread):
@@ -58,6 +70,9 @@ def remove_connection(socket):
             break
     threadLock.release() # Rilascia il blocco
 
+#
+# Gestisce la connessione di un utente
+#
 class UserHandler(threading.Thread):
     def __init__(self, s, a, username):
        threading.Thread.__init__(self)
@@ -96,7 +111,9 @@ class UserHandler(threading.Thread):
         self.socket = None
         self.running = False
 
-
+#
+# Gestisce l'apertura di nuove connessioni
+#
 class Server(threading.Thread):
     def __init__(self):
        threading.Thread.__init__(self)
@@ -114,19 +131,18 @@ class Server(threading.Thread):
                 # print("\nAttesa di una connessione...\n")
                 (clientSocket, addr) = self.serverSocket.accept()
 
-                if self.running:
-                    username = ml.strReceive(clientSocket)
-                    # Connessione ricevuta, estrae l'username
-                    print("\nConnessione di", username, "con parametri", addr)
-                    console_print("\nConnessione di", username, "con parametri", addr)
+                # Connessione ricevuta, estrae l'username
+                username = ml.strReceive(clientSocket)
 
-                    # Creazione thred, avvio e ritorno ad ascoltare
-                    svc = UserHandler(clientSocket, addr, username)
-                    svc.start()
-                    running_thread.append(svc)
-                    print("Thread inizializzato con successo")
-                    console_print("Thread inizializzato con successo")
+                print("\nConnessione di", username, "con parametri", addr)
+                console_print("\nConnessione di", username, "con parametri", addr)
 
+                # Creazione thred, avvio e ritorno ad ascoltare
+                svc = UserHandler(clientSocket, addr, username)
+                svc.start()
+                running_thread.append(svc)
+                print("Thread inizializzato con successo")
+                console_print("Thread inizializzato con successo")
             except ConnectionResetError:
                 print("Client chiuso forzatamente dall'utente")
                 console_print("Client chiuso forzatamente dall'utente")

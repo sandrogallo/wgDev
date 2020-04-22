@@ -1,7 +1,7 @@
 #
 # Server Three
 # Team: Server Python
-# last-updated: 21/04/2020 by Team Server
+# last-updated: 22/04/2020 by Team Server
 #
 
 import socket
@@ -10,16 +10,12 @@ import mylib as ml
 from datetime import datetime
 from tkinter import *
 
-# Vettore che memorizza tutte le connessioni
-connessioni = []
-running_thread = []
-# Definizione del lock
-threadLock = threading.Lock()
-
-
-def insert_into_console(text):
+def console_print(*text):
     console.config(state="normal")
-    console.insert("end", text + "\n")
+    out_str = ""
+    for t in text:
+        out_str = out_str + " " + str(t)
+    console.insert("end", out_str + "\n")
     console.config(state="disabled")
     console.see("end")
 
@@ -27,122 +23,120 @@ def insert_into_console(text):
 # Messaggio di chiusura forzata del client
 #
 def client_closed(my_socket, username):
-    now = datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
-    out = "["+now+"] " + username + " ha chiuso il client"
+    out = "["+timespamp()+"] " + username + " ha chiuso il client"
     print(out)
-    insert_into_console(out)
-    send_to_all(my_socket, username, out)
-    connessioni.remove(my_socket)
+    console_print(out)
+    forward(my_socket, username, out)
+
+def client_quitted(my_socket, username):
+    out = "["+timespamp()+"] " + username + " ha abbandonato la chat"
+    print(out)
+    console_print(out)
+    ml.strSend(my_socket, out) # Messaggio di termine
+    forward(my_socket, username, out)
+
+def timespamp():
+    return datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
 
 #
 # Inoltra a tutti gli altri client il messaggio
 #
-def send_to_all(my_socket, username, msg):
-    for socket in connessioni:
+def forward(my_socket, username, msg):
+    for th in running_thread:
         try:
-            if(socket != my_socket):
-                ml.strSend(socket, username + "> " + msg)
+            if(th.socket != my_socket):
+                ml.strSend(th.socket, username + "> " + msg)
         except:
-            print(socket, "non ha ricevuto")
+            console_print(th.socket, "non ha ricevuto")
 
+def remove_connection(socket):
+    threadLock.acquire() # Blocca l'accesso alle variabili per gli altri thread
+    for i, th in enumerate(running_thread):
+        if th.socket == socket:
+            running_thread[i].stop()
+            del running_thread[i]
+            break
+    threadLock.release() # Rilascia il blocco
 
-class Service(threading.Thread):
-    def __init__(self, s, a, username): # s: clientSocket - a: address
+class UserHandler(threading.Thread):
+    def __init__(self, s, a, username):
        threading.Thread.__init__(self)
-       self.s = s
-       self.a = a
+       self.socket = s
+       self.address = a
        self.username = username
        self.running = True
 
     def run(self):
         try:
             while self.running:
-                msg = ml.strReceive(self.s) # Ricezione messaggio
-
-                now = datetime.now().strftime("%d-%m-%Y %H:%M:%S") # Data corrente
+                msg = ml.strReceive(self.socket) # Ricezione messaggio
 
                 # Comando di uscita, il thread viene terminato
                 if msg == 'quit':
-                    out = "["+now+"] " + self.username + " ha abbandonato la chat"
-                    print(out)
-                    insert_into_console(out)
-                    ml.strSend(self.s, out) # Messaggio di termine
-                    send_to_all(self.s, self.username, out)
-                    self.s.close()
-                    threadLock.acquire() # Blocca l'accesso alle variabili per gli altri thread
-                    connessioni.remove(self.s)
-                    threadLock.release() # Rilascia il blocco
+                    client_quitted(self.socket, self.username)
+                    remove_connection(self.socket)
                     break;
 
+                now = timespamp()
                 print("["+now+"]", self.username + ": " + msg)
-                insert_into_console("["+now+"]" + str(self.username) + ": " + str(msg))
-                send_to_all(self.s, self.username, msg)
+                console_print("["+now+"]", self.username+":" , msg)
+                forward(self.socket, self.username, msg)
         except ConnectionResetError: # Nel caso il client venga chiuso dalla X
-            client_closed(self.s, self.username)
+            client_closed(self.socket, self.username)
+            remove_connection(self.socket)
         except ValueError: # Nel caso il client venga chiuso dalla X
-            client_closed(self.s, self.username)
-        except Exception:
+            client_closed(self.socket, self.username)
+            remove_connection(self.socket)
+        except Exception as e:
             print(self.username, "rip")
-            insert_into_console(str(self.username) + "rip")
+            console_print(str(self.username), "rip")
 
     def stop(self):
-        self.s = None
+        self.socket.close()
+        self.socket = None
         self.running = False
-
-
-#
-# Creazione socket e ascolto su HOST e PORT
-#
 
 
 class Server(threading.Thread):
     def __init__(self):
        threading.Thread.__init__(self)
-       self.running = False
-       self.serverSocket = None
+       self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+       self.serverSocket.bind((ml.HOST, ml.PORT))
+       print("Server Three avviato su", ml.HOST, ":", ml.PORT)
+       console_print("Server Three avviato su", ml.HOST, ":", ml.PORT)
+       self.serverSocket.listen(5)
+       self.running = True
 
     def run(self):
-        while True:
-            while self.running:
-                try:
-                    # Attesa di una connessione
-                    # print("\nAttesa di una connessione...\n")
-                    (clientSocket, addr) = self.serverSocket.accept()
+        while self.running:
+            try:
+                # Attesa di una connessione
+                # print("\nAttesa di una connessione...\n")
+                (clientSocket, addr) = self.serverSocket.accept()
 
-                    if self.running:
-                        username = ml.strReceive(clientSocket)
-                        # Connessione ricevuta, estrae l'username
-                        print("\nConnessione di", username, "con parametri", addr)
-                        insert_into_console("\nConnessione di " + str(username) + " con parametri " + str(addr))
-                        connessioni.append(clientSocket)
+                if self.running:
+                    username = ml.strReceive(clientSocket)
+                    # Connessione ricevuta, estrae l'username
+                    print("\nConnessione di", username, "con parametri", addr)
+                    console_print("\nConnessione di", username, "con parametri", addr)
 
-                        # Creazione thred, avvio e ritorno ad ascoltare
-                        svc = Service(clientSocket, addr, username)
-                        svc.start()
-                        running_thread.append(svc)
-                        print("Thread inizializzato con successo")
-                        insert_into_console("Thread inizializzato con successo")
+                    # Creazione thred, avvio e ritorno ad ascoltare
+                    svc = UserHandler(clientSocket, addr, username)
+                    svc.start()
+                    running_thread.append(svc)
+                    print("Thread inizializzato con successo")
+                    console_print("Thread inizializzato con successo")
 
-                except ConnectionResetError:
-                    print("Client chiuso forzatamente dall'utente")
-                    insert_into_console("Client chiuso forzatamente dall'utente")
-                except Exception:
-                    print("Rip")
-                    insert_into_console("Rip")
-
-    def avvia(self):
-        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.serverSocket.bind((ml.HOST, ml.PORT))
-        print("Server Three avviato su", ml.HOST, ":", ml.PORT)
-        insert_into_console("Server Three avviato su" + str(ml.HOST) + ":" + str(ml.PORT))
-        self.serverSocket.listen(5)
-        self.running = True
+            except ConnectionResetError:
+                print("Client chiuso forzatamente dall'utente")
+                console_print("Client chiuso forzatamente dall'utente")
+            except Exception:
+                print("Rip")
+                console_print("Rip")
 
     def stop(self):
-        global connessioni
         global running_thread
         threadLock.acquire()
-        connessioni = []
         for i in running_thread:
             i.stop()
         threadLock.release()
@@ -150,22 +144,30 @@ class Server(threading.Thread):
         self.serverSocket = None
         self.running = False
 
-posso = False
-th_server = Server()
-th_server.start()
+
+# Vettore che memorizza tutti i thread in esecuzione
+running_thread = []
+
+# Definizione del lock
+threadLock = threading.Lock()
+
+server_running = False
+th_server = None
 
 def start_stop_server():
-    global posso
-    if posso:
+    global server_running
+    global th_server
+    if server_running:
         th_server.stop()
-        posso = not posso
+        server_running = not server_running
         print("Server terminato")
-        insert_into_console("Server terminato")
+        console_print("Server terminato")
     else:
         print("Avvio del server")
-        insert_into_console("Avvio del server")
-        th_server.avvia()
-        posso = not posso
+        console_print("Avvio del server")
+        th_server = Server()
+        th_server.start()
+        server_running = not server_running
 
 # Inizializzazione parametri finestra
 win = Tk()

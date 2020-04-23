@@ -180,7 +180,7 @@ class Server(threading.Thread):
                 print("\nConnessione di", username, "con parametri", addr)
                 # console_print("\nConnessione di", username, "con parametri", addr)
 
-                # Creazione thred, avvio e ritorno ad ascoltare
+                # Creazione thread, avvio e ritorno ad ascoltare
                 svc = UserHandler(clientSocket, addr, username)
                 svc.start()
                 running_thread.append(svc)
@@ -229,6 +229,9 @@ pygame.init()
 btnImg_on = PhotoImage(file="img/bottone_on.png")
 btnImg_off = PhotoImage(file="img/bottone_off.png")
 
+#
+# Gestione avvio e spegnimento del server
+#
 def start_stop_server():
     global server_running
     global th_server
@@ -250,6 +253,9 @@ def start_stop_server():
         th_server.start()
     server_running = not server_running
 
+#
+# Gestione comandi
+#
 def cmdHandler(event=None):
     global running_thread
     if server_running:
@@ -277,17 +283,20 @@ def cmdHandler(event=None):
         console_print("Server spento!")
     cmdLine.delete("0", "end")
 
-
+# Console principale
 console = Text(win, width=100, height=23, borderwidth=2, relief="groove")
 console.grid(column=0, row=0)
 console.config(state="disabled")
 
+# Linea per input messaggi e comandi
 cmdLine = Entry(win, width=133, borderwidth=3, relief="groove")
 cmdLine.bind('<Return>', cmdHandler)
 cmdLine.grid(column=0, row=1)
 
+# Bottone accensione e spegnimento server
 btnOnOff = Button(win, image=btnImg_off, command=start_stop_server, bd="0").place(x=900, y=460)
 
+# Lista utenti (finestra a dx)
 userList = Text(win, width=30, height=23, borderwidth=2, relief="groove")
 userList.grid(column=1, row=0)
 userList.config(state="disabled")

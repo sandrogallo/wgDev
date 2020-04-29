@@ -30,8 +30,10 @@ def console_print(*text):
         for t in text:
             out_str = out_str + " " + str(t)
         console.insert("end", out_str + "\n")
+        log.write(out_str + "\n")
     else:
         console.insert("end", "\n")
+        log.write("\n")
     console.config(state="disabled")
     console.see("end")
 
@@ -136,7 +138,7 @@ class UserHandler(threading.Thread):
 
                 now = timespamp()
                 print("["+now+"]", self.username + ": " + msg)
-                console_print("["+now+"]", self.username+":" , msg)
+                console_print("["+now+"]" + self.username+": " + msg)
                 forward(self.socket, self.username, msg)
         except ConnectionResetError: # Nel caso il client venga chiuso dalla X
             client_closed(self.socket, self.username)
@@ -178,7 +180,7 @@ class Server(threading.Thread):
                 username = ml.strReceive(clientSocket)
 
                 print("\nConnessione di", username, "con parametri", addr)
-                # console_print("\nConnessione di", username, "con parametri", addr)
+                console_print("\nConnessione di", username, "con parametri", addr)
 
                 # Creazione thread, avvio e ritorno ad ascoltare
                 svc = UserHandler(clientSocket, addr, username)
@@ -207,6 +209,8 @@ class Server(threading.Thread):
         self.serverSocket = None
         self.running = False
 
+# Apertura del log
+log = open("log.txt","a")
 
 # Vettore che memorizza tutti i thread in esecuzione
 running_thread = []
